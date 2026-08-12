@@ -1,6 +1,6 @@
 # 2026 FIFA World Cup Monte Carlo Simulator
 
-**By Cris — Computational Data Sciences, Penn State University (Expected May 2027)**
+**By Cristian Aquino — Computational Data Sciences, Penn State University (Expected May 2027)**
 
  **Live App:** https://world-cup-simulator-2026woowoo.streamlit.app/
 📁 **Dataset:** https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2017/data
