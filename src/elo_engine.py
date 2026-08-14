@@ -161,71 +161,72 @@ def margin_of_victory_multiplier(goal_diff, elo_diff):
     return min(multiplier, 1.75)
 
 #Loads data
-print("Loading cleaned data...")
-df = pd.read_csv('data/processed/cleaned_matches.csv')
+if __name__ == "__main__":
+    print("Loading cleaned data...")
+    df = pd.read_csv('data/processed/cleaned_matches.csv')
 
-df['date'] = pd.to_datetime(df["date"])
+    df['date'] = pd.to_datetime(df["date"])
 
-elo_ratings = {} #elo dictionary
+    elo_ratings = {} #elo dictionary
 
-#Calculates Elo ratings
-print("Calculating  Elo ratings... this might take a second.")
+    #Calculates Elo ratings
+    print("Calculating  Elo ratings... this might take a second.")
 
-for index, row in df.iterrows():
-    home = row['home_team']
-    away = row['away_team'] 
-    home_score = row["home_score"]
-    away_score = row["away_score"]
-    goal_diff = home_score - away_score
+    for index, row in df.iterrows():
+        home = row['home_team']
+        away = row['away_team'] 
+        home_score = row["home_score"]
+        away_score = row["away_score"]
+        goal_diff = home_score - away_score
 
-    if home not in elo_ratings:
-        elo_ratings[home] = 1500
-    if away not in elo_ratings:
-        elo_ratings[away] = 1500
+        if home not in elo_ratings:
+            elo_ratings[home] = 1500
+        if away not in elo_ratings:
+            elo_ratings[away] = 1500
 
-    hfa = 0 if row['neutral'] else 65
-    k = get_k_factor(row['tournament'])
+        hfa = 0 if row['neutral'] else 65
+        k = get_k_factor(row['tournament'])
 
-    if row['date'].year < 2000:
-        k = k * 0.5
+        if row['date'].year < 2000:
+            k = k * 0.5
 
-    home_confederation = TEAM_CONFEDERATION.get(home)
-    away_confederation = TEAM_CONFEDERATION.get(away)
+        home_confederation = TEAM_CONFEDERATION.get(home)
+        away_confederation = TEAM_CONFEDERATION.get(away)
 
-    weight_home = CONFEDERATION_WEIGHTS.get(home_confederation)
-    weight_away = CONFEDERATION_WEIGHTS.get(away_confederation)
+        weight_home = CONFEDERATION_WEIGHTS.get(home_confederation)
+        weight_away = CONFEDERATION_WEIGHTS.get(away_confederation)
 
-    conf_weight = (weight_home + weight_away) / 2 
+        conf_weight = (weight_home + weight_away) / 2 
 
-    home_expected = 1 / (1 + 10 ** ((elo_ratings[away] - (elo_ratings[home] + hfa)) / 400))
-    away_expected = 1 / (1 + 10 ** ((elo_ratings[home] - (elo_ratings[away] - hfa)) / 400))
+        home_expected = 1 / (1 + 10 ** ((elo_ratings[away] - (elo_ratings[home] + hfa)) / 400))
+        away_expected = 1 / (1 + 10 ** ((elo_ratings[home] - (elo_ratings[away] - hfa)) / 400))
 
-    if goal_diff > 0:
-        elo_diff_at_kickoff = elo_ratings[home] - elo_ratings[away]
-    elif goal_diff < 0:
-        elo_diff_at_kickoff = elo_ratings[away] - elo_ratings[home]
-    else:
-        elo_diff_at_kickoff = 0 
-        
-    mov = margin_of_victory_multiplier(abs(goal_diff), elo_diff_at_kickoff)
+        if goal_diff > 0:
+            elo_diff_at_kickoff = elo_ratings[home] - elo_ratings[away]
+        elif goal_diff < 0:
+            elo_diff_at_kickoff = elo_ratings[away] - elo_ratings[home]
+        else:
+            elo_diff_at_kickoff = 0 
+            
+        mov = margin_of_victory_multiplier(abs(goal_diff), elo_diff_at_kickoff)
 
-    #Determine Actual Results (1 for win, 0.5 for draw, 0 for loss) ---
-    if goal_diff > 0:
-        home_result, away_result = 1.0, 0.0
-    elif goal_diff < 0:
-        home_result, away_result = 0.0, 1.0
-    else:
-        home_result, away_result = 0.5, 0.5
+        #Determine Actual Results (1 for win, 0.5 for draw, 0 for loss) ---
+        if goal_diff > 0:
+            home_result, away_result = 1.0, 0.0
+        elif goal_diff < 0:
+            home_result, away_result = 0.0, 1.0
+        else:
+            home_result, away_result = 0.5, 0.5
 
-    #Final Equation
-    effective_k = k * conf_weight * mov
-    elo_ratings[home] = elo_ratings[home] + effective_k * (home_result - home_expected)
-    elo_ratings[away] = elo_ratings[away] + effective_k * (away_result - away_expected)        
+        #Final Equation
+        effective_k = k * conf_weight * mov
+        elo_ratings[home] = elo_ratings[home] + effective_k * (home_result - home_expected)
+        elo_ratings[away] = elo_ratings[away] + effective_k * (away_result - away_expected)        
 
-#Saves results in new dataframe
-final_ratings = pd.DataFrame(list(elo_ratings.items()), columns=['Team', 'Elo_Rating'])
-final_ratings = final_ratings.sort_values(by='Elo_Rating', ascending=False).reset_index(drop=True)
-final_ratings.to_csv('data/processed/current_elos.csv', index=False)
+    #Saves results in new dataframe
+    final_ratings = pd.DataFrame(list(elo_ratings.items()), columns=['Team', 'Elo_Rating'])
+    final_ratings = final_ratings.sort_values(by='Elo_Rating', ascending=False).reset_index(drop=True)
+    final_ratings.to_csv('data/processed/current_elos.csv', index=False)
 
-print("Success! Elo engine complete. Here are the Top 10 teams in the world:")
-print(final_ratings.head(20))
+    print("Success! Elo engine complete. Here are the Top 10 teams in the world:")
+    print(final_ratings.head(20))
